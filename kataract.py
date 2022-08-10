@@ -22,7 +22,7 @@ def get_chan_freqs(myms):
     '''
     spw_tab = daskms.xds_from_table(myms+'::SPECTRAL_WINDOW', columns = 'CHAN_FREQ')
     chan_freqs = spw_tab[0].CHAN_FREQ[myspw,:].values
-    logging.info('%s channels' % len(chan_freqs))
+    logging.info('MS has %s channels' % len(chan_freqs))
     return chan_freqs
 
 
@@ -37,7 +37,7 @@ def get_times(myms,t0,t1):
     # times = time_centroid.TIME_CENTROID.values
     if t1 == 0: t1 = len(times)
     times = times[t0:t1]
-    logging.info('%s unique timeslots' % len(times))
+    logging.info('MS has %s unique timeslots' % len(times))
     return times
 
 
@@ -46,6 +46,7 @@ def save_xarray(datacube,chan_freqs,times,opfile):
     Put per-Stokes data into xarray and dump to netCDF file
     Rotate input array so time moves left to right when plotted
     '''
+    logging.info('Writing %s' % opfile)
     datacube = numpy.stack(datacube)
     datacube = numpy.swapaxes(datacube,0,1)
     xdatacube = xarray.DataArray(datacube,
@@ -102,11 +103,11 @@ if __name__ == '__main__':
     if ifile == '':
         ifile = 'kataract_'+myms.split('/')[-1]+'_I.nc'
     if qfile == '':
-        ifile = 'kataract_'+myms.split('/')[-1]+'_Q.nc'
+        qfile = 'kataract_'+myms.split('/')[-1]+'_Q.nc'
     if ufile == '':
-        ifile = 'kataract_'+myms.split('/')[-1]+'_U.nc'
+        ufile = 'kataract_'+myms.split('/')[-1]+'_U.nc'
     if vfile == '':
-        ifile = 'kataract_'+myms.split('/')[-1]+'_V.nc'
+        vfile = 'kataract_'+myms.split('/')[-1]+'_V.nc'
 
     # Setup logfile name
     if logfile == '':
@@ -156,7 +157,7 @@ if __name__ == '__main__':
 
         # Get data and flags for this timeslot
         msdata = daskms.xds_from_ms(myms, columns = ms_cols, 
-            taql_where = 'TIME_CENTROID==%s && DATA_DESC_ID==%s ' % (timeslot,myspw))
+            taql_where = 'TIME_CENTROID==%s && DATA_DESC_ID==%s  && FIELD_ID==%s' % (timeslot,myspw,myfield))
         vis = msdata[myspw][mycol].values
         flags = msdata[myspw]['FLAG'].values
 
