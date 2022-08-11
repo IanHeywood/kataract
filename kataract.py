@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser.add_option('--ufile', dest = 'ufile', help = 'netCDF file for Stokes U output (default = based on MS name)', default = '')
     parser.add_option('--vfile', dest = 'vfile', help = 'netCDF file for Stokes V output (default = based on MS name)', default = '')
     parser.add_option('--logfile', dest = 'logfile', help = 'File name for log output (default = based on MS name)', default = '')
-    parser.add_option('--init-log', dest = 'initlogfile', help = 'Remove existing log file at the start (default = do not remove)', default = False)
+    parser.add_option('--init-log', dest = 'initlogfile', help = 'Remove existing log file at the start (default = do not remove)', action = 'store_true', default = False)
 
     # Get command line options
     (options,args) = parser.parse_args()
@@ -103,13 +103,13 @@ if __name__ == '__main__':
 
     # Setup output file names
     if ifile == '':
-        ifile = myms.split('/')[-1]+'_kataI.nc'
+        ifile = myms.split('/')[-1]+'_StokesI-kata.nc'
     if qfile == '':
-        qfile = myms.split('/')[-1]+'_kataQ.nc'
+        qfile = myms.split('/')[-1]+'_StokesQ-kata.nc'
     if ufile == '':
-        ufile = myms.split('/')[-1]+'_kataU.nc'
+        ufile = myms.split('/')[-1]+'_StokesU-kata.nc'
     if vfile == '':
-        vfile = myms.split('/')[-1]+'_kataV.nc'
+        vfile = myms.split('/')[-1]+'_StokesV-kata.nc'
 
     # Setup logfile name
     if logfile == '':
