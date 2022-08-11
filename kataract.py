@@ -37,11 +37,11 @@ def get_times(myms,t0,t1):
     # times = time_centroid.TIME_CENTROID.values
     if t1 == 0: t1 = len(times)
     times = times[t0:t1]
-    logging.info('MS has %s unique timeslots' % len(times))
+    logging.info('MS has %s timeslots' % len(times))
     return times
 
 
-def save_xarray(datacube,chan_freqs,times,opfile):
+def save_xarray(datacube,name,chan_freqs,times,opfile):
     '''
     Put per-Stokes data into xarray and dump to netCDF file
     Rotate input array so time moves left to right when plotted
@@ -50,7 +50,7 @@ def save_xarray(datacube,chan_freqs,times,opfile):
     datacube = numpy.stack(datacube)
     datacube = numpy.swapaxes(datacube,0,1)
     xdatacube = xarray.DataArray(datacube,
-        name = 'I',
+        name = name,
         dims = ['freq','time'],
         coords = {'freq' : chan_freqs,
                   'time' : times})
@@ -68,6 +68,7 @@ if __name__ == '__main__':
     parser.add_option('--t1', dest = 't1', help = 'Final time slot to plot (default = plot all)', default = 0)
     parser.add_option('--subtract-col', dest = 'subtract_col', help = 'Subtract this column on the fly (default = no subtraction)', default = False)
     parser.add_option('--ignore-weights', dest = 'ignore_weights', help = 'Ignore WEIGHT_SPECTRUM when computing spectra (default = False)', action = 'store_true', default = False)
+    parser.add_option('--flag-threshold', dest = 'flag_threshold', help = 'Percentage of flags per time/freq point above which datum is discarded (default = 50)', default = 50)
     parser.add_option('--ifile', dest = 'ifile', help = 'netCDF file for Stokes I output (default = based on MS name)', default = '')
     parser.add_option('--qfile', dest = 'qfile', help = 'netCDF file for Stokes Q output (default = based on MS name)', default = '')
     parser.add_option('--ufile', dest = 'ufile', help = 'netCDF file for Stokes U output (default = based on MS name)', default = '')
@@ -85,6 +86,7 @@ if __name__ == '__main__':
     t1 = int(options.t1)
     subtract_col = options.subtract_col
     ignore_weights = options.ignore_weights
+    flag_threshold = options.flag_threshold
     ifile = options.ifile
     qfile = options.qfile
     ufile = options.ufile
@@ -101,13 +103,13 @@ if __name__ == '__main__':
 
     # Setup output file names
     if ifile == '':
-        ifile = 'kataract_'+myms.split('/')[-1]+'_I.nc'
+        ifile = myms.split('/')[-1]+'_kataI.nc'
     if qfile == '':
-        qfile = 'kataract_'+myms.split('/')[-1]+'_Q.nc'
+        qfile = myms.split('/')[-1]+'_kataQ.nc'
     if ufile == '':
-        ufile = 'kataract_'+myms.split('/')[-1]+'_U.nc'
+        ufile = myms.split('/')[-1]+'_kataU.nc'
     if vfile == '':
-        vfile = 'kataract_'+myms.split('/')[-1]+'_V.nc'
+        vfile = myms.split('/')[-1]+'_kataV.nc'
 
     # Setup logfile name
     if logfile == '':
@@ -124,18 +126,20 @@ if __name__ == '__main__':
     logging.info('')
     logging.info('k a t a r a c t')
     logging.info('')
-    logging.info('TO DO: Implement weights')
-    logging.info('TO DO: Implement flag propagation')
-    logging.info('')
     logging.info('Processing %s ' % myms)
 
-    # Make like of required columns for daskms
+    # Make list of required columns for daskms
+    logging.info('Visibilities will be read from the %s column' % mycol)
     ms_cols = [mycol,'FLAG']
     if subtract_col:
+        logging.info('Residuals formed by subtraction of %s column' % subtract_col)
         ms_cols.append(subtract_col)
     if not ignore_weights:
         ms_cols.append('WEIGHT_SPECTRUM')
+    else:
+        logging.info('WEIGHT_SPECTRUM will be ignored')
 
+    logging.info('Getting MS info, please wait...')
     # Get channel frequencies
     chan_freqs = get_chan_freqs(myms)
 
@@ -150,7 +154,7 @@ if __name__ == '__main__':
     ucube = []
     vcube = []
 
-
+    logging.info('Getting data...')
     # Loop over timeslots
     start_time = time.time()
     for timeslot in times:
@@ -158,19 +162,37 @@ if __name__ == '__main__':
         # Get data and flags for this timeslot
         msdata = daskms.xds_from_ms(myms, columns = ms_cols, 
             taql_where = 'TIME_CENTROID==%s && DATA_DESC_ID==%s  && FIELD_ID==%s' % (timeslot,myspw,myfield))
+        
         vis = msdata[myspw][mycol].values
         flags = msdata[myspw]['FLAG'].values
+        weights = msdata[myspw]['WEIGHT_SPECTRUM'].values
+
+        # Collapse flags across baseline axis and turn into a percentage
+        # Resulting array has shape (nchan,ncorr)
+        flag_mask = (100.0*numpy.mean(flags,axis=0) > flag_threshold)
 
         # Compute residuals if requested
         if subtract_col:
             vis = vis - msdata.MODEL_DATA.values
         
-        # Apply flags as a mask and compute per-corr vector averaged amplitudes
+        # Apply flags as a mask and compute per-corr weighted vector averaged amplitudes
         vis = numpy.ma.array(vis, mask = flags)
-        XX = numpy.ma.mean(vis[:,:,0],axis=0)
-        XY = numpy.ma.mean(vis[:,:,1],axis=0)
-        YX = numpy.ma.mean(vis[:,:,2],axis=0)
-        YY = numpy.ma.mean(vis[:,:,3],axis=0)
+        weights = numpy.ma.array(weights, mask = flags)
+        # XX = numpy.ma.mean(vis[:,:,0],axis=0)
+        # XY = numpy.ma.mean(vis[:,:,1],axis=0)
+        # YX = numpy.ma.mean(vis[:,:,2],axis=0)
+        # YY = numpy.ma.mean(vis[:,:,3],axis=0)
+        XX = numpy.ma.average(vis[:,:,0], axis=0, weights=weights[:,:,0])
+        XY = numpy.ma.average(vis[:,:,1], axis=0, weights=weights[:,:,0])
+        YX = numpy.ma.average(vis[:,:,2], axis=0, weights=weights[:,:,0])
+        YY = numpy.ma.average(vis[:,:,3], axis=0, weights=weights[:,:,0])
+
+
+        # Apply flag percentage cuts
+        XX.data[numpy.where(flag_mask[:,0]==True)] = numpy.nan
+        XY.data[numpy.where(flag_mask[:,1]==True)] = numpy.nan
+        YX.data[numpy.where(flag_mask[:,2]==True)] = numpy.nan
+        YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan
 
         # 
         if 'I' in stokes:
@@ -191,19 +213,19 @@ if __name__ == '__main__':
             end_time = time.time()
             elapsed = round(end_time-start_time,1)
             eta = round(9*elapsed,1)
-            logging.info('First ten percent took %s seconds' % elapsed)
+            logging.info('First ten percent of spectra took %s seconds' % elapsed)
             logging.info('Estimated completion in %s seconds' % eta)
 
 
     # Dump dynamic spectrum data to xarrays and save them
     if 'I' in stokes:
-        save_xarray(icube,chan_freqs,times,ifile)
+        save_xarray(icube,'I',chan_freqs,times,ifile)
     if 'Q' in stokes:
-        save_xarray(qcube,chan_freqs,times,qfile)
+        save_xarray(qcube,'Q',chan_freqs,times,qfile)
     if 'U' in stokes:
-        save_xarray(ucube,chan_freqs,times,ufile)
+        save_xarray(ucube,'U',chan_freqs,times,ufile)
     if 'V' in stokes:
-        save_xarray(vcube,chan_freqs,times,vfile)
+        save_xarray(vcube,'V',chan_freqs,times,vfile)
 
 
     logging.info('Finished')
