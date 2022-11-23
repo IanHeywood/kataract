@@ -192,9 +192,8 @@ if __name__ == '__main__':
         XX.data[numpy.where(flag_mask[:,0]==True)] = numpy.nan
         XY.data[numpy.where(flag_mask[:,1]==True)] = numpy.nan
         YX.data[numpy.where(flag_mask[:,2]==True)] = numpy.nan
-        YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan
-
-        # 
+        YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan 
+        
         if 'I' in stokes:
             ispectrum = numpy.abs((XX+YY)/2.0)
             icube.append(ispectrum)
@@ -202,10 +201,10 @@ if __name__ == '__main__':
             qspectrum = numpy.abs((XX-YY)/2.0)
             qcube.append(qspectrum)
         if 'U' in stokes:
-            uspectrum = numpy.abs((XY-YX)/2.0)
+            uspectrum = numpy.abs((XY+YX)/2.0)
             ucube.append(uspectrum)
         if 'V' in stokes:
-            vspectrum = numpy.abs((XY+YX)/(2.0*j))
+            vspectrum = numpy.abs((XY-YX)/(2.0*j))
             vcube.append(vspectrum)
 
         count += 1
