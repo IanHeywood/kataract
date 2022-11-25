@@ -196,13 +196,13 @@ if __name__ == '__main__':
 
         # 
         if 'I' in stokes:
-            ispectrum = ((XX+YY)/2.0)
+            ispectrum = numpy.abs((XX+YY)/2.0)
             icube.append(ispectrum)
         if 'Q' in stokes:
-            qspectrum = ((XX-YY)/2.0)
+            qspectrum = numpy.real((XX-YY)/2.0)
             qcube.append(qspectrum)
         if 'U' in stokes:
-            uspectrum = ((XY-YX)/2.0)
+            uspectrum = numpy.real((XY-YX)/2.0)
             ucube.append(uspectrum)
         if 'V' in stokes:
             vspectrum = numpy.imag((XY+YX)/(2.0*j))
