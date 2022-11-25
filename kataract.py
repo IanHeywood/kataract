@@ -202,10 +202,10 @@ if __name__ == '__main__':
             qspectrum = numpy.real((XX-YY)/2.0)
             qcube.append(qspectrum)
         if 'U' in stokes:
-            uspectrum = numpy.real((XY-YX)/2.0)
+            uspectrum = numpy.real((XY+YX)/2.0)
             ucube.append(uspectrum)
         if 'V' in stokes:
-            vspectrum = numpy.imag((XY+YX)/(2.0*j))
+            vspectrum = numpy.imag((XY-YX)/(2.0*j))
             vcube.append(vspectrum)
 
         count += 1
