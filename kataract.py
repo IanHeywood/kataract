@@ -183,28 +183,29 @@ if __name__ == '__main__':
         # YX = numpy.ma.mean(vis[:,:,2],axis=0)
         # YY = numpy.ma.mean(vis[:,:,3],axis=0)
         XX = numpy.ma.average(vis[:,:,0], axis=0, weights=weights[:,:,0])
-        XY = numpy.ma.average(vis[:,:,1], axis=0, weights=weights[:,:,0])
-        YX = numpy.ma.average(vis[:,:,2], axis=0, weights=weights[:,:,0])
-        YY = numpy.ma.average(vis[:,:,3], axis=0, weights=weights[:,:,0])
+        XY = numpy.ma.average(vis[:,:,1], axis=0, weights=weights[:,:,1])
+        YX = numpy.ma.average(vis[:,:,2], axis=0, weights=weights[:,:,2])
+        YY = numpy.ma.average(vis[:,:,3], axis=0, weights=weights[:,:,3])
 
 
         # Apply flag percentage cuts
         XX.data[numpy.where(flag_mask[:,0]==True)] = numpy.nan
         XY.data[numpy.where(flag_mask[:,1]==True)] = numpy.nan
         YX.data[numpy.where(flag_mask[:,2]==True)] = numpy.nan
-        YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan 
-        
+        YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan
+
+        # 
         if 'I' in stokes:
-            ispectrum = numpy.abs((XX+YY)/2.0)
+            ispectrum = ((XX+YY)/2.0)
             icube.append(ispectrum)
         if 'Q' in stokes:
-            qspectrum = numpy.abs((XX-YY)/2.0)
+            qspectrum = ((XX-YY)/2.0)
             qcube.append(qspectrum)
         if 'U' in stokes:
-            uspectrum = numpy.abs((XY+YX)/2.0)
+            uspectrum = ((XY-YX)/2.0)
             ucube.append(uspectrum)
         if 'V' in stokes:
-            vspectrum = numpy.abs((XY-YX)/(2.0*j))
+            vspectrum = numpy.imag((XY+YX)/(2.0*j))
             vcube.append(vspectrum)
 
         count += 1
