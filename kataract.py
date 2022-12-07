@@ -225,7 +225,7 @@ if __name__ == '__main__':
 
         # 
         if 'I' in stokes:
-            ispectrum = numpy.abs((XX+YY)/2.0)
+            ispectrum = numpy.real((XX+YY)/2.0)
             icube.append(ispectrum)
         if 'Q' in stokes:
             qspectrum = numpy.real((XX-YY)/2.0)
