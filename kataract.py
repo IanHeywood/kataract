@@ -73,6 +73,11 @@ if __name__ == '__main__':
     parser.add_option('--qfile', dest = 'qfile', help = 'netCDF file for Stokes Q output (default = based on MS name)', default = '')
     parser.add_option('--ufile', dest = 'ufile', help = 'netCDF file for Stokes U output (default = based on MS name)', default = '')
     parser.add_option('--vfile', dest = 'vfile', help = 'netCDF file for Stokes V output (default = based on MS name)', default = '')
+    parser.add_option('--xxfile', dest = 'xxfile', help = 'netCDF file for XX output (default = based on MS name)', default = '')
+    parser.add_option('--xyfile', dest = 'xyfile', help = 'netCDF file for XY output (default = based on MS name)', default = '')
+    parser.add_option('--yxfile', dest = 'yxfile', help = 'netCDF file for YX output (default = based on MS name)', default = '')
+    parser.add_option('--yyfile', dest = 'yyfile', help = 'netCDF file for YY output (default = based on MS name)', default = '')
+    parser.add_option('--nocorr', dest = 'nocorr', help = 'Do not save baseline-averaged correlations (default = save them)', default = False, action = 'store_true')
     parser.add_option('--logfile', dest = 'logfile', help = 'File name for log output (default = based on MS name)', default = '')
     parser.add_option('--init-log', dest = 'initlogfile', help = 'Remove existing log file at the start (default = do not remove)', action = 'store_true', default = False)
 
@@ -91,6 +96,11 @@ if __name__ == '__main__':
     qfile = options.qfile
     ufile = options.ufile
     vfile = options.vfile
+    xxfile = options.xxfile
+    xyfile = options.xyfile
+    yxfile = options.yxfile
+    yyfile = options.yyfile
+    nocorr = options.nocorr
     logfile = options.logfile
     initlogfile = options.initlogfile
 
@@ -110,6 +120,14 @@ if __name__ == '__main__':
         ufile = myms.split('/')[-1]+'_StokesU-kata.nc'
     if vfile == '':
         vfile = myms.split('/')[-1]+'_StokesV-kata.nc'
+    if xxfile == '':
+        xxfile = myms.split('/')[-1]+'_XX-kata.nc'
+    if xyfile == '':
+        xyfile = myms.split('/')[-1]+'_XY-kata.nc'
+    if yxfile == '':
+        yxfile = myms.split('/')[-1]+'_YX-kata.nc'
+    if yyfile == '':
+        yyfile = myms.split('/')[-1]+'_YY-kata.nc'
 
     # Setup logfile name
     if logfile == '':
@@ -154,6 +172,12 @@ if __name__ == '__main__':
     ucube = []
     vcube = []
 
+    if not nocorr:
+        xxcube =[]
+        xycube =[]
+        yxcube =[]
+        yycube =[]
+
     logging.info('Getting data...')
     # Loop over timeslots
     start_time = time.time()
@@ -194,6 +218,11 @@ if __name__ == '__main__':
         YX.data[numpy.where(flag_mask[:,2]==True)] = numpy.nan
         YY.data[numpy.where(flag_mask[:,3]==True)] = numpy.nan
 
+        xxcube.append(XX)
+        xycube.append(XY)
+        yxcube.append(YX)
+        yycube.append(YY)
+
         # 
         if 'I' in stokes:
             ispectrum = numpy.abs((XX+YY)/2.0)
@@ -218,6 +247,7 @@ if __name__ == '__main__':
 
 
     # Dump dynamic spectrum data to xarrays and save them
+    logging.info('Saving requested xarrays')
     if 'I' in stokes:
         save_xarray(icube,'I',chan_freqs,times,ifile)
     if 'Q' in stokes:
@@ -226,6 +256,11 @@ if __name__ == '__main__':
         save_xarray(ucube,'U',chan_freqs,times,ufile)
     if 'V' in stokes:
         save_xarray(vcube,'V',chan_freqs,times,vfile)
+    if not nocorr:
+        save_xarray(xxcube,'XX',chan_freqs,times,xxfile)
+        save_xarray(xycube,'XY',chan_freqs,times,xyfile)
+        save_xarray(yxcube,'YX',chan_freqs,times,yxfile)
+        save_xarray(yycube,'YY',chan_freqs,times,xxfile)
 
 
     logging.info('Finished')
