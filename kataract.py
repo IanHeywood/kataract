@@ -121,13 +121,13 @@ if __name__ == '__main__':
     if vfile == '':
         vfile = myms.split('/')[-1]+'_StokesV-kata.nc'
     if xxfile == '':
-        xxfile = myms.split('/')[-1]+'_XX-kata.nc'
+        xxrfile = myms.split('/')[-1]+'_XX-kata.nc'
     if xyfile == '':
-        xyfile = myms.split('/')[-1]+'_XY-kata.nc'
+        xyrfile = myms.split('/')[-1]+'_XY-kata.nc'
     if yxfile == '':
-        yxfile = myms.split('/')[-1]+'_YX-kata.nc'
+        yxrfile = myms.split('/')[-1]+'_YX-kata.nc'
     if yyfile == '':
-        yyfile = myms.split('/')[-1]+'_YY-kata.nc'
+        yyrfile = myms.split('/')[-1]+'_YY-kata.nc'
 
     # Setup logfile name
     if logfile == '':
@@ -257,10 +257,11 @@ if __name__ == '__main__':
     if 'V' in stokes:
         save_xarray(vcube,'V',chan_freqs,times,vfile)
     if not nocorr:
-        save_xarray(xxcube,'XX',chan_freqs,times,xxfile)
-        save_xarray(xycube,'XY',chan_freqs,times,xyfile)
-        save_xarray(yxcube,'YX',chan_freqs,times,yxfile)
-        save_xarray(yycube,'YY',chan_freqs,times,xxfile)
+        logging.info('Correlation dumps not implemented yet (netCDF has no complex support)')
+        # save_xarray(xxcube,'XX',chan_freqs,times,xxfile)
+        # save_xarray(xycube,'XY',chan_freqs,times,xyfile)
+        # save_xarray(yxcube,'YX',chan_freqs,times,yxfile)
+        # save_xarray(yycube,'YY',chan_freqs,times,xxfile)
 
 
     logging.info('Finished')
