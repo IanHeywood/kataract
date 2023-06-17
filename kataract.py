@@ -41,6 +41,25 @@ def get_times(myms,t0,t1):
     return times
 
 
+def regularise_times(times):
+    new_times = []
+    time_flags = []
+    diffs = [times[i + 1] - times[i] for i in range(len(times) - 1)]
+    t_int = numpy.min(numpy.unique(numpy.round(diffs, 3)))
+    for i in range(0,len(times)-1):
+        new_times.append(times[i])
+        time_flags.append(False)
+        if numpy.round((times[i+1] - times[i]),3) != t_int:
+            num_gaps = int(((times[i+1] - times[i]) // t_int))
+            for j in range(1,num_gaps+1):
+#                times.insert(i+j,times[i]+(j*t_int))
+                new_times.append(times[i]+(j*t_int))
+                time_flags.append(True)
+    new_times.append(times[-1])
+    time_flags.append(False)
+    return new_times,time_flags
+
+
 def save_xarray(datacube,name,chan_freqs,times,opfile):
     '''
     Put per-Stokes data into xarray and dump to netCDF file
@@ -64,6 +83,7 @@ if __name__ == '__main__':
     parser.add_option('--stokes', dest = 'stokes', help = 'Stokes parameters to plot (default = IQUV)', default = 'IQUV')
     parser.add_option('--field', dest = 'myfield', help = 'FIELD_ID selection (default = 0)', default = 0)
     parser.add_option('--spw', dest = 'myspw', help = 'SPW ID selection (default = 0)', default = 0)
+    parser.add_option('--minuv', dest = 'minuv', help = 'Minimum UV distance (in metres) to use (default = 0)', default = 0)
     parser.add_option('--t0', dest = 't0', help = 'First time slot to plot (default = plot all)', default = 0)
     parser.add_option('--t1', dest = 't1', help = 'Final time slot to plot (default = plot all)', default = 0)
     parser.add_option('--subtract-col', dest = 'subtract_col', help = 'Subtract this column on the fly (default = no subtraction)', default = False)
@@ -87,6 +107,7 @@ if __name__ == '__main__':
     stokes = options.stokes.upper()
     myfield = int(options.myfield)
     myspw = int(options.myspw)
+    minuv = float(options.minuv)
     t0 = int(options.t0)
     t1 = int(options.t1)
     subtract_col = options.subtract_col
@@ -142,7 +163,7 @@ if __name__ == '__main__':
     logging.getLogger().addHandler(logging.StreamHandler())
 
     logging.info('')
-    logging.info('k a t a r a c t')
+    logging.info('      ====== kataract ======')
     logging.info('')
     logging.info('Processing %s ' % myms)
 
@@ -152,6 +173,8 @@ if __name__ == '__main__':
     if subtract_col:
         logging.info('Residuals formed by subtraction of %s column' % subtract_col)
         ms_cols.append(subtract_col)
+    if minuv > 0.0:
+        logging.info('Baselines below %s m will be excluded' % minuv)
     if not ignore_weights:
         ms_cols.append('WEIGHT_SPECTRUM')
     else:
@@ -181,11 +204,12 @@ if __name__ == '__main__':
     logging.info('Getting data...')
     # Loop over timeslots
     start_time = time.time()
-    for timeslot in times:
+    for i in range(len(times)):
 
+        timeslot = times[i]
         # Get data and flags for this timeslot
         msdata = daskms.xds_from_ms(myms, columns = ms_cols, 
-            taql_where = 'TIME_CENTROID==%s && DATA_DESC_ID==%s  && FIELD_ID==%s' % (timeslot,myspw,myfield))
+            taql_where = 'TIME_CENTROID==%s && DATA_DESC_ID==%s  && FIELD_ID==%s && sqrt(sumsqr(UVW[:2])) > %s' % (timeslot,myspw,myfield,minuv))
         
         vis = msdata[myspw][mycol].values
         flags = msdata[myspw]['FLAG'].values
@@ -223,18 +247,18 @@ if __name__ == '__main__':
         yxcube.append(YX)
         yycube.append(YY)
 
-        # 
+        ispectrum = numpy.real((XX+YY)/2.0)
+        qspectrum = numpy.real((XX-YY)/2.0)
+        uspectrum = numpy.real((XY+YX)/2.0)
+        vspectrum = numpy.imag((XY-YX)/(2.0*j))
+
         if 'I' in stokes:
-            ispectrum = numpy.real((XX+YY)/2.0)
             icube.append(ispectrum)
         if 'Q' in stokes:
-            qspectrum = numpy.real((XX-YY)/2.0)
             qcube.append(qspectrum)
         if 'U' in stokes:
-            uspectrum = numpy.real((XY+YX)/2.0)
             ucube.append(uspectrum)
         if 'V' in stokes:
-            vspectrum = numpy.imag((XY-YX)/(2.0*j))
             vcube.append(vspectrum)
 
         count += 1
@@ -245,17 +269,42 @@ if __name__ == '__main__':
             logging.info('First ten percent of spectra took %s seconds' % elapsed)
             logging.info('Estimated completion in %s seconds' % eta)
 
+    
+    logging.info('Regularising time axis')
+    all_times,time_flags = regularise_times(times)
+    dummy_spectrum = numpy.ones(len(chan_freqs))*numpy.nan
+
+    icube_final = []
+    qcube_final = []
+    ucube_final = []
+    vcube_final = []
+
+    j = 0
+    for i in range(0,len(time_flags)):
+        if time_flags[i]:
+            icube_final.append(dummy_spectrum)
+            qcube_final.append(dummy_spectrum)
+            ucube_final.append(dummy_spectrum)
+            vcube_final.append(dummy_spectrum)
+        else:
+            icube_final.append(icube[j])
+            qcube_final.append(qcube[j])
+            ucube_final.append(ucube[j])
+            vcube_final.append(vcube[j])
+            j+=1 
+
+    times = all_times
 
     # Dump dynamic spectrum data to xarrays and save them
     logging.info('Saving requested xarrays')
     if 'I' in stokes:
-        save_xarray(icube,'I',chan_freqs,times,ifile)
+        save_xarray(icube_final,'I',chan_freqs,times,ifile)
     if 'Q' in stokes:
-        save_xarray(qcube,'Q',chan_freqs,times,qfile)
+        save_xarray(qcube_final,'Q',chan_freqs,times,qfile)
     if 'U' in stokes:
-        save_xarray(ucube,'U',chan_freqs,times,ufile)
+        save_xarray(ucube_final,'U',chan_freqs,times,ufile)
     if 'V' in stokes:
-        save_xarray(vcube,'V',chan_freqs,times,vfile)
+        save_xarray(vcube_final,'V',chan_freqs,times,vfile)
     if not nocorr:
         logging.info('Correlation dumps not implemented yet (netCDF has no complex support)')
         # save_xarray(xxcube,'XX',chan_freqs,times,xxfile)
