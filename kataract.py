@@ -213,7 +213,14 @@ if __name__ == '__main__':
         
         vis = msdata[myspw][mycol].values
         flags = msdata[myspw]['FLAG'].values
-        weights = msdata[myspw]['WEIGHT_SPECTRUM'].values
+        if not ignore_weights:
+            weights = msdata[myspw]['WEIGHT_SPECTRUM'].values
+
+        # Parallel reads for a zarr-backed MS
+        # vis = msdata[myspw][mycol].data
+        # flags = msdata[myspw]['FLAG'].data
+        # weights = msdata[myspw]['WEIGHT_SPECTRUM'].data
+        # vis,flags,weights = dask.compute(vis,flags,weights)
 
         # Collapse flags across baseline axis and turn into a percentage
         # Resulting array has shape (nchan,ncorr)
