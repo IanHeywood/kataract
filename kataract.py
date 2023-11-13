@@ -232,16 +232,21 @@ if __name__ == '__main__':
         
         # Apply flags as a mask and compute per-corr weighted vector averaged amplitudes
         vis = numpy.ma.array(vis, mask = flags)
-        weights = numpy.ma.array(weights, mask = flags)
         # XX = numpy.ma.mean(vis[:,:,0],axis=0)
         # XY = numpy.ma.mean(vis[:,:,1],axis=0)
         # YX = numpy.ma.mean(vis[:,:,2],axis=0)
         # YY = numpy.ma.mean(vis[:,:,3],axis=0)
-        XX = numpy.ma.average(vis[:,:,0], axis=0, weights=weights[:,:,0])
-        XY = numpy.ma.average(vis[:,:,1], axis=0, weights=weights[:,:,1])
-        YX = numpy.ma.average(vis[:,:,2], axis=0, weights=weights[:,:,2])
-        YY = numpy.ma.average(vis[:,:,3], axis=0, weights=weights[:,:,3])
-
+        if not ignore_weights:
+            weights = numpy.ma.array(weights, mask = flags)
+            XX = numpy.ma.average(vis[:,:,0], axis=0, weights=weights[:,:,0])
+            XY = numpy.ma.average(vis[:,:,1], axis=0, weights=weights[:,:,1])
+            YX = numpy.ma.average(vis[:,:,2], axis=0, weights=weights[:,:,2])
+            YY = numpy.ma.average(vis[:,:,3], axis=0, weights=weights[:,:,3])
+        else:
+            XX = numpy.ma.average(vis[:,:,0], axis=0)
+            XY = numpy.ma.average(vis[:,:,1], axis=0)
+            YX = numpy.ma.average(vis[:,:,2], axis=0)
+            YY = numpy.ma.average(vis[:,:,3], axis=0)
 
         # Apply flag percentage cuts
         XX.data[numpy.where(flag_mask[:,0]==True)] = numpy.nan
