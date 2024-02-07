@@ -133,22 +133,23 @@ if __name__ == '__main__':
         myms = args[0].rstrip('/')
 
     # Setup output file names
+    field_label = '_field'+str(myfield)
     if ifile == '':
-        ifile = myms.split('/')[-1]+'_StokesI-kata.nc'
+        ifile = myms.split('/')[-1]+field_label+'_StokesI-kata.nc'
     if qfile == '':
-        qfile = myms.split('/')[-1]+'_StokesQ-kata.nc'
+        qfile = myms.split('/')[-1]+field_label+'_StokesQ-kata.nc'
     if ufile == '':
-        ufile = myms.split('/')[-1]+'_StokesU-kata.nc'
+        ufile = myms.split('/')[-1]+field_label+'_StokesU-kata.nc'
     if vfile == '':
-        vfile = myms.split('/')[-1]+'_StokesV-kata.nc'
+        vfile = myms.split('/')[-1]+field_label+'_StokesV-kata.nc'
     if xxfile == '':
-        xxrfile = myms.split('/')[-1]+'_XX-kata.nc'
+        xxrfile = myms.split('/')[-1]+field_label+'_XX-kata.nc'
     if xyfile == '':
-        xyrfile = myms.split('/')[-1]+'_XY-kata.nc'
+        xyrfile = myms.split('/')[-1]+field_label+'_XY-kata.nc'
     if yxfile == '':
-        yxrfile = myms.split('/')[-1]+'_YX-kata.nc'
+        yxrfile = myms.split('/')[-1]+field_label+'_YX-kata.nc'
     if yyfile == '':
-        yyrfile = myms.split('/')[-1]+'_YY-kata.nc'
+        yyrfile = myms.split('/')[-1]+field_label+'_YY-kata.nc'
 
     # Setup logfile name
     if logfile == '':
